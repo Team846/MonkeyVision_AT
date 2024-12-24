@@ -18,8 +18,11 @@ class CameraReader:
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
 
+        self.og_frame = None
+
     def get_frame(self) -> Tuple[MatLike, int]:
         ret, frame = self.cap.read()
+        self.og_frame = frame
 
         while not ret:
             logger.Warn("Retrying get camera frame...")
@@ -30,3 +33,7 @@ class CameraReader:
         frame = PROCESS_FRAME(frame)
 
         return frame, ts
+    
+    def get_og_frame(self) -> MatLike:
+        self.og_frame = cv2.cvtColor(self.og_frame, cv2.COLOR_BGR2GRAY)
+        return self.og_frame

@@ -18,11 +18,13 @@ class VisionMain:
         self.processing_latency = 0.0
 
         self.frame: cv2.typing.MatLike = None
+        self.og_frame: cv2.typing.MatLike = None
         self.detections: List[localization.partial_solution.Detection] = []
 
     def execute(self):
         while True:
             frame, timestamp = self.cam.get_frame()
+            self.og_frame = self.cam.get_og_frame()
 
             corners, ids = localization.detection.DETECT_TAGS(frame)
 
@@ -41,6 +43,9 @@ class VisionMain:
 
     def get_frame(self):
         return self.frame
+    
+    def get_og_frame(self):
+        return self.og_frame
     
     def get_detections(self):
         return self.detections
