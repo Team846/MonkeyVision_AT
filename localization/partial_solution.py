@@ -93,9 +93,9 @@ def CALCULATE_PARTIAL_SOLUTION(image: MatLike, all_corners, all_IDs) -> List[Det
         y_tag = float(tag_data.get("y", "0.0"))
         theta_h: float = (x_diff / image.shape[1]) * CAM_FOV_X.valueFloat() + CAM_ANGLE_H.valueFloat()
         theta_v: float = (y_diff / image.shape[0]) * CAM_FOV_Y.valueFloat() + CAM_ANGLE_V.valueFloat()
-        r_ground: float = (h_tag - CAM_H.valueFloat()) / math.tan(math.radians(theta_v))
-
-        result.append(Detection(r_ground, theta_h, x_tag, y_tag, tID))
+        if (theta_v!=0):
+            r_ground: float = (h_tag - CAM_H.valueFloat()) / math.tan(math.radians(theta_v))
+            result.append(Detection(r_ground, theta_h, x_tag, y_tag, tID))
 
     return result
     
