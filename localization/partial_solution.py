@@ -71,9 +71,8 @@ def CALCULATE_PARTIAL_SOLUTION(image: MatLike, all_corners, all_IDs) -> List[Det
             continue
 
         corners = corners.flatten()
-        x_top_left: float = (corners[4])
-        y_top_left: float = (corners[5])
-
+        x_top_left: float = (corners[2])
+        y_top_left: float = (corners[3])
         x_center: float = image.shape[1] / 2
         y_center: float = image.shape[0] / 2
 
@@ -85,8 +84,9 @@ def CALCULATE_PARTIAL_SOLUTION(image: MatLike, all_corners, all_IDs) -> List[Det
         h_tag = float(tag_data.get("h", "54.0"))
         theta_h: float = (x_diff / image.shape[1]) * CAM_FOV_X.valueFloat() + CAM_ANGLE_H.valueFloat()
         theta_v: float = (y_diff / image.shape[0]) * CAM_FOV_Y.valueFloat() + CAM_ANGLE_V.valueFloat()
+        print(theta_v)
         if (theta_v!=0):
-            r_ground: float = (h_tag - CAM_H.valueFloat()) / math.tan(math.radians(theta_v))
+            r_ground: float = ((h_tag - CAM_H.valueFloat()) / math.tan(math.radians(theta_v)))/math.cos(math.radians(theta_h- + CAM_ANGLE_H.valueFloat()))
             result.append(Detection(r_ground, theta_h, tID))
 
     return result
