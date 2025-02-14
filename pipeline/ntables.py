@@ -10,6 +10,7 @@ class NTables:
         pass
 
     def execute(self, detections, latency):
+        self.table.putNumber("tl", latency)
         angles:List[float]=[]
         distances:List[float]=[]
         tags:List[int]=[]
@@ -20,7 +21,6 @@ class NTables:
         self.table.putNumberArray("tx", angles)
         self.table.putNumberArray("distances", distances)
         self.table.putNumberArray("tags", tags)
-        self.table.putNumber("tl", latency)
         pass
 
     def updateFrameNum(self, frame_num):
