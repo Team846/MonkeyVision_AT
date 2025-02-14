@@ -15,7 +15,7 @@ class VisionMain:
         if platform.system() == "Windows" or platform.system() == "Darwin":
             self.cam = CameraReader(0)
         else:
-            self.cam = CameraReader(f"ATCam{pipeline_number}")
+            self.cam = CameraReader(pipeline_number)
 
         self.frame_count = 0
         self.start_time = time.time()
@@ -45,12 +45,12 @@ class VisionMain:
             self.processing_latency = (time_ns() - timestamp) / 1e9
 
             self.frame_count += 1
+            self.ntables.execute(self.detections, self.processing_latency)
 
             if self.frame_count % 20 == 0:
                 end_time = time.time()
                 self.framerate = 20 / (end_time - self.start_time)
                 self.start_time = end_time
-            self.ntables.execute(self.detections, self.processing_latency)
 
     def get_frame(self):
         return self.frame
