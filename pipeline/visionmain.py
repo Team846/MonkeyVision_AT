@@ -8,6 +8,7 @@ from time import time_ns
 from typing import List
 import platform
 
+
 class VisionMain:
     def __init__(self, pipeline_number: int):
         self.pipeline_number = pipeline_number
@@ -25,14 +26,16 @@ class VisionMain:
 
         self.frame: cv2.typing.MatLike = None
         self.detections: List[localization.partial_solution.Detection] = []
-        self.ntables : pipeline.ntables.NTables = pipeline.ntables.NTables(pipeline_number)
-        self.frame_num=0
+        self.ntables: pipeline.ntables.NTables = pipeline.ntables.NTables(
+            pipeline_number
+        )
+        self.frame_num = 0
         localization.partial_solution.SET_CAM(pipeline_number)
 
     def execute(self):
         while True:
-            self.frame_num+=1
-            self.frame_num%=500
+            self.frame_num += 1
+            self.frame_num %= 500
             self.ntables.updateFrameNum(self.frame_num)
             frame, timestamp = self.cam.get_frame()
 
@@ -40,7 +43,9 @@ class VisionMain:
 
             self.frame = localization.detection.ANNOTATE_TAGS(frame, corners, ids)
 
-            self.detections = localization.partial_solution.CALCULATE_PARTIAL_SOLUTION(frame, corners, ids)
+            self.detections = localization.partial_solution.CALCULATE_PARTIAL_SOLUTION(
+                self.pipeline_number, frame, corners, ids
+            )
 
             self.processing_latency = (time_ns() - timestamp) / 1e9
 
@@ -54,15 +59,15 @@ class VisionMain:
 
     def get_frame(self):
         return self.frame
-    
+
     def get_detections(self):
         return self.detections
-    
+
     def get_framerate(self):
         return self.framerate
-    
+
     def get_processing_latency(self):
         return self.processing_latency
-    
+
     def get_pipeline_number(self):
         return self.pipeline_number
