@@ -22,26 +22,16 @@ with open(TAG_FILE_PATH, "r") as tag_file:
     logger.Log(f"Loaded tags: {loaded_tags}")
 
 
-CAM_FOV_X = 0
-CAM_FOV_Y = 0
 CAM_ANGLE_H = 0
-CAM_ANGLE_V = 0
-CAM_H = 0
-CAM_X = 0
-CAM_Y = 0
+
+TAG_H = 0
 
 
 def SET_CAM(pipeline: int):
-
     pref_category = ConfigCategory(f"PartialSolution{pipeline}")
-    global CAM_FOV_X, CAM_FOV_Y, CAM_ANGLE_H, CAM_ANGLE_V, CAM_H, CAM_X, CAM_Y
-    CAM_FOV_X = pref_category.getFloatConfig("CAM_FOV_X_deg", 70.0)
-    CAM_FOV_Y = pref_category.getFloatConfig("CAM_FOV_Y_deg", 47.27)
+    global CAM_ANGLE_H, CAM_H, TAG_H
     CAM_ANGLE_H = pref_category.getFloatConfig("CAM_MOUNT_H_deg", 0.0)
-    CAM_ANGLE_V = pref_category.getFloatConfig("CAM_MOUNT_V_deg", 0.0)
-    CAM_H = pref_category.getFloatConfig("CAM_H_in", 12.0)
-    CAM_X = pref_category.getFloatConfig("CAM_X_in", 0.0)
-    CAM_Y = pref_category.getFloatConfig("CAM_Y_in", 0.0)
+    TAG_H = pref_category.getFloatConfig("TAG_H_in", 6.25)
 
 
 class Detection:
@@ -83,7 +73,7 @@ dist_coeffs = [
 def CALCULATE_PARTIAL_SOLUTION(
     camera_id: int, image: MatLike, all_corners, all_IDs
 ) -> List[Detection]:
-    global CAM_FOV_X, CAM_FOV_Y, CAM_H
+    global CAM_ANGLE_H, TAG_H
 
     h, w = image.shape[:2]
 
@@ -106,27 +96,31 @@ def CALCULATE_PARTIAL_SOLUTION(
             continue
 
         corners = corners.flatten()
-        x_br: float = corners[2]
-        y_br: float = corners[3]
+        x_left: float = (corners[2] + corners[4]) / 2.0
+        y_bottom: float = (corners[3] + corners[1]) / 2.0
+        y_top: float = (corners[5] + corners[7]) / 2.0
 
-        tx_cm, ty_cm = GET_CAMERA_ANGLES(
-            x_br,
-            y_br,
+        tx_l, ty_t = GET_CAMERA_ANGLES(
+            x_left,
+            y_top,
             image,
             dist_coeffs[camera_id - 1][0],
-            camera_matrices[camera_id - 1],
+            new_camera_matrix,
         )
-        tx_cm += CAM_ANGLE_H.valueFloat()
-        ty_cm -= CAM_ANGLE_V.valueFloat()
+        _, ty_b = GET_CAMERA_ANGLES(
+            0.0,
+            y_bottom,
+            image,
+            dist_coeffs[camera_id - 1][0],
+            new_camera_matrix,
+        )
+        tx_l += CAM_ANGLE_H.valueFloat()
 
-        tag_data = loaded_tags.get(str(tID), {})
+        r_ground: float = TAG_H.valueFloat() / abs(
+            math.tan(math.radians(ty_t)) - math.tan(math.radians(ty_b))
+        )
+        r_ground = r_ground / math.cos(math.radians(tx_l))
 
-        h_tag = float(tag_data.get("h", "54.0"))
-
-        if ty_cm != 0:
-            r_ground: float = (
-                (CAM_H.valueFloat() - h_tag) / math.tan(math.radians(ty_cm))
-            ) / math.cos(math.radians(tx_cm - CAM_ANGLE_H.valueFloat()))
-            result.append(Detection(r_ground, tx_cm, tID))
+        result.append(Detection(r_ground, tx_l, tID))
 
     return result

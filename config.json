@@ -36,53 +36,13 @@
     }
   },
   "PartialSolution2": {
-    "CAM_FOV_X_deg": {
-      "value": "70.0",
-      "type": 2
-    },
-    "CAM_FOV_Y_deg": {
-      "value": "47.27",
-      "type": 2
-    },
-    "CAM_H_in": {
-      "value": "19.5",
-      "type": 2
-    },
     "CAM_MOUNT_H_deg": {
       "value": "180.0",
-      "type": 2
-    },
-    "CAM_MOUNT_V_deg": {
-      "value": "9.1",
-      "type": 2
-    },
-    "CAM_X_in": {
-      "value": "0.0",
-      "type": 2
-    },
-    "CAM_Y_in": {
-      "value": "0.0",
       "type": 2
     }
   },
   "PartialSolution1": {
-    "CAM_H_in": {
-      "value": "16.75",
-      "type": 2
-    },
     "CAM_MOUNT_H_deg": {
-      "value": "180.0",
-      "type": 2
-    },
-    "CAM_MOUNT_V_deg": {
-      "value": "-3.29207",
-      "type": 2
-    },
-    "CAM_X_in": {
-      "value": "0.0",
-      "type": 2
-    },
-    "CAM_Y_in": {
       "value": "0.0",
       "type": 2
     }
