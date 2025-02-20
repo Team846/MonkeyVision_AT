@@ -26,7 +26,8 @@ def GET_CAMERA_ANGLES(
         cam_mtx, frame.shape, CAM_APT_X, CAM_APT_Y
     )
 
-    angle_x = (x_normalized - frame.shape[1] / 2.0) / frame.shape[1] * cam_fov_x * 2.0
-    angle_y = (y_normalized - frame.shape[0] / 2.0) / frame.shape[0] * cam_fov_y
+
+    angle_x = (x_normalized - frame.shape[1] / 2.0) / frame.shape[1] * cam_fov_x*2
+    angle_y = (-y_normalized + frame.shape[0] / 2.0) / frame.shape[0] * cam_fov_y
 
     return angle_x, angle_y

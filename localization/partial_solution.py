@@ -23,14 +23,16 @@ with open(TAG_FILE_PATH, "r") as tag_file:
 
 
 CAM_ANGLE_H = 0
+CAM_ANGLE_V =0
 
 TAG_H = 0
 
 
 def SET_CAM(pipeline: int):
     pref_category = ConfigCategory(f"PartialSolution{pipeline}")
-    global CAM_ANGLE_H, CAM_H, TAG_H
+    global CAM_ANGLE_H, CAM_ANGLE_V, TAG_H
     CAM_ANGLE_H = pref_category.getFloatConfig("CAM_MOUNT_H_deg", 0.0)
+    CAM_ANGLE_V = pref_category.getFloatConfig("CAM_MOUNT_V_deg", 0.0)
     TAG_H = pref_category.getFloatConfig("TAG_H_in", 6.25)
 
 
@@ -63,9 +65,18 @@ camera_matrices = [
             [0.0, 909.01346161, 464.51229778],
             [0.0, 0.0, 1.0],
         ]
+    ),
+        np.array(
+        [
+            [913.7377659, 0.0, 673.42504633],
+            [0.0, 909.01346161, 464.51229778],
+            [0.0, 0.0, 1.0],
+        ]
     )
 ]
 dist_coeffs = [
+    np.array([[0.03171734, -0.01147495, -0.00010437, -0.00082573, -0.059311]]),
+
     np.array([[0.03171734, -0.01147495, -0.00010437, -0.00082573, -0.059311]])
 ]
 
@@ -73,7 +84,7 @@ dist_coeffs = [
 def CALCULATE_PARTIAL_SOLUTION(
     camera_id: int, image: MatLike, all_corners, all_IDs
 ) -> List[Detection]:
-    global CAM_ANGLE_H, TAG_H
+    global CAM_ANGLE_H, TAG_H, CAM_ANGLE_V
 
     h, w = image.shape[:2]
 
@@ -99,6 +110,7 @@ def CALCULATE_PARTIAL_SOLUTION(
         x_left: float = (corners[2] + corners[4]) / 2.0
         y_bottom: float = (corners[3] + corners[1]) / 2.0
         y_top: float = (corners[5] + corners[7]) / 2.0
+        x_right: float = (corners[0]+corners[6])/2.0
 
         tx_l, ty_t = GET_CAMERA_ANGLES(
             x_left,
@@ -107,20 +119,24 @@ def CALCULATE_PARTIAL_SOLUTION(
             dist_coeffs[camera_id - 1][0],
             new_camera_matrix,
         )
-        _, ty_b = GET_CAMERA_ANGLES(
-            0.0,
+        tx_r, ty_b = GET_CAMERA_ANGLES(
+            x_right,
             y_bottom,
             image,
             dist_coeffs[camera_id - 1][0],
             new_camera_matrix,
         )
         tx_l += CAM_ANGLE_H.valueFloat()
+        print(ty_t)
+        print(ty_b)
 
-        r_ground: float = TAG_H.valueFloat() / abs(
-            math.tan(math.radians(ty_t)) - math.tan(math.radians(ty_b))
+        r_cam: float = TAG_H.valueFloat() / abs(
+            math.tan(math.radians(ty_t+CAM_ANGLE_V.valueFloat())) - math.tan(math.radians(ty_b+CAM_ANGLE_V.valueFloat()))
         )
-        r_ground = r_ground / math.cos(math.radians(tx_l))
-
+        r_ground = r_cam / math.cos(math.radians(tx_l-CAM_ANGLE_H.valueFloat()))
+        # tx_l=math.degrees(math.asin(r_cam/r_ground*math.sin(math.radians(tx_l-CAM_ANGLE_H.valueFloat())))) + CAM_ANGLE_H.valueFloat()
+        # if (abs(tx_l-CAM_ANGLE_H.valueFloat())<25):
+        # if (tx_r-tx_l)>.3:
         result.append(Detection(r_ground, tx_l, tID))
 
     return result
