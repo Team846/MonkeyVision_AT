@@ -17,7 +17,7 @@
       "type": 2
     },
     "divergence_gain": {
-      "value": "1.5",
+      "value": "3.8",
       "type": 2
     }
   },
@@ -43,7 +43,7 @@
   },
   "PartialSolution1": {
     "CAM_MOUNT_H_deg": {
-      "value": "0.0",
+      "value": "-7.0",
       "type": 2
     }
   },
