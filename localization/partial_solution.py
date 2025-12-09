@@ -25,6 +25,9 @@ with open(TAG_FILE_PATH, "r") as tag_file:
 CAM_ANGLE_H = 0
 CAM_ANGLE_V = 0
 
+CAM_APT_X = 8.7586
+CAM_APT_Y = 8.7586
+
 TAG_H = 0
 
 
@@ -79,6 +82,7 @@ dist_coeffs = [
     np.array([[0.03171734, -0.01147495, -0.00010437, -0.00082573, -0.059311]]),
 ]
 
+cached_camera_data = {}
 
 def CALCULATE_PARTIAL_SOLUTION(
     camera_id: int, image: MatLike, all_corners, all_IDs
@@ -87,13 +91,20 @@ def CALCULATE_PARTIAL_SOLUTION(
 
     h, w = image.shape[:2]
 
-    new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
-        camera_matrices[camera_id - 1],
-        dist_coeffs[camera_id - 1],
-        (w, h),
-        1,
-        (w, h),
-    )
+    if camera_id not in cached_camera_data:
+        new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
+            camera_matrices[camera_id - 1],
+            dist_coeffs[camera_id - 1],
+            (w, h),
+            1,
+            (w, h),
+        )
+        cam_fov_x, cam_fov_y, _, _, _ = cv2.calibrationMatrixValues(
+            new_camera_matrix, (w, h), CAM_APT_X, CAM_APT_Y
+        )
+        cached_camera_data[camera_id] = (new_camera_matrix, cam_fov_x, cam_fov_y)
+
+    new_camera_matrix, cam_fov_x, cam_fov_y = cached_camera_data[camera_id]
 
     result = []
 
@@ -106,37 +117,33 @@ def CALCULATE_PARTIAL_SOLUTION(
             continue
 
         corners = corners.flatten()
-        x_left: float = (corners[2] + corners[4]) / 2.0
-        y_bottom: float = (corners[3] + corners[1]) / 2.0
+        x_center: float = (corners[0] + corners[2] + corners[4] + corners[6]) / 4.0
         y_top: float = (corners[5] + corners[7]) / 2.0
-        x_right: float = (corners[0] + corners[6]) / 2.0
+        y_bottom: float = (corners[3] + corners[1]) / 2.0
+        y_center: float = (y_top + y_bottom) / 2.0
 
-        tx_l, ty_t = GET_CAMERA_ANGLES(
-            x_left,
-            y_top,
+        points = np.array([[x_center, y_center], [x_center, y_top], [x_center, y_bottom]])
+        angles = GET_CAMERA_ANGLES(
+            points,
             image,
             dist_coeffs[camera_id - 1][0],
             new_camera_matrix,
+            cam_fov_x,
+            cam_fov_y,
         )
-        tx_r, ty_b = GET_CAMERA_ANGLES(
-            x_right,
-            y_bottom,
-            image,
-            dist_coeffs[camera_id - 1][0],
-            new_camera_matrix,
-        )
-        tx_l += CAM_ANGLE_H.valueFloat()
-        print(ty_t)
-        print(ty_b)
+        
+        tx_c = angles[0, 0]
+        tx_t = angles[1, 1]
+        tx_b = angles[2, 1]
 
+        tx_c += CAM_ANGLE_H.valueFloat()
+        
         r_cam: float = TAG_H.valueFloat() / abs(
-            math.tan(math.radians(ty_t + CAM_ANGLE_V.valueFloat()))
-            - math.tan(math.radians(ty_b + CAM_ANGLE_V.valueFloat()))
+            math.tan(math.radians(tx_t + CAM_ANGLE_V.valueFloat()))
+            - math.tan(math.radians(tx_b + CAM_ANGLE_V.valueFloat()))
         )
-        r_ground = r_cam / math.cos(math.radians(tx_l - CAM_ANGLE_H.valueFloat()))
-        # tx_l=math.degrees(math.asin(r_cam/r_ground*math.sin(math.radians(tx_l-CAM_ANGLE_H.valueFloat())))) + CAM_ANGLE_H.valueFloat()
-        # if (abs(tx_l-CAM_ANGLE_H.valueFloat())<25):
-        # if (tx_r-tx_l)>.3:
-        result.append(Detection(r_ground, tx_l, tID))
+        r_ground = r_cam / math.cos(math.radians(tx_c - CAM_ANGLE_H.valueFloat()))
+        
+        result.append(Detection(r_ground, tx_c, tID))
 
     return result

@@ -3,7 +3,7 @@ import numpy as np
 from cv2.typing import MatLike
 from util.config import ConfigCategory, Config
 from typing import Tuple
-from numba import njit
+from numba import njit, prange
 
 pref_category = ConfigCategory("Preprocessing")
 
@@ -13,16 +13,18 @@ min_corr_strength = pref_category.getFloatConfig("min_corr_strength", 0.1)
 corr_divisor = pref_category.getFloatConfig("corr_divisor", 400.0)
 divergence_gain = pref_category.getFloatConfig("divergence_gain", 1.5)
 
-@njit
+# TODO: test stability and perf of nogil and parallel
+@njit(cache=True, fastmath=True, parallel=True, nogil=True)
 def COMPUTE_CORRECTION_MATRIX(image: np.ndarray, bins_per_side: int, target_brightness: int) -> np.ndarray:
     height, width = image.shape
     bin_height = height // bins_per_side
     bin_width = width // bins_per_side
 
-    bin_means = np.array([
-        np.mean(image[i * bin_height:(i + 1) * bin_height, j * bin_width:(j + 1) * bin_width])
-        for i in range(bins_per_side) for j in range(bins_per_side)
-    ]).reshape(bins_per_side, bins_per_side)
+    bin_means = np.empty((bins_per_side, bins_per_side), dtype=np.float32)
+    
+    for i in prange(bins_per_side):
+        for j in range(bins_per_side):
+            bin_means[i, j] = np.mean(image[i * bin_height:(i + 1) * bin_height, j * bin_width:(j + 1) * bin_width])
 
     correction_matrix = target_brightness - bin_means
 
@@ -44,11 +46,11 @@ def BIN_BASED_CORRECT(image: np.ndarray, acc_num_bins: int, target_brightness: i
 
     return image.astype(np.float32) + correction_matrix * corr_strength
 
-@njit
+@njit(cache=True, fastmath=True)
 def DIVERGING_MOD(image: np.ndarray, divergence_gain: float) -> np.ndarray:
     mean = np.mean(image)
-
-    corrected_image = image * ((divergence_gain * (image - mean) + mean) / mean)
+    inv_mean = 1.0 / mean if mean > 0 else 1.0
+    corrected_image = image * ((divergence_gain * (image - mean) + mean) * inv_mean)
     corrected_image = np.clip(corrected_image, 0, 255).astype(np.uint8)
 
     return corrected_image
