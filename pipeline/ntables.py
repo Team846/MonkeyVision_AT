@@ -1,13 +1,15 @@
 import cv2
 from threading import Thread
 from typing import List
-from networktables import NetworkTables
+from ntcore import NetworkTableInstance
 
 class NTables:
     def __init__(self, pipeline_number):
-        NetworkTables.initialize(server='10.8.46.2')
-        self.table = NetworkTables.getTable(f"AprilTagsCam{pipeline_number}")
-        pass
+        self.inst = NetworkTableInstance.getDefault()
+        self.inst.startClient4("AprilTagServer")
+        self.inst.setServerTeam(846)
+        self.inst.startDSClient()
+        self.table = self.inst.getTable(f"AprilTagsCam{pipeline_number}")
 
     def execute(self, detections, latency):
         self.table.putNumber("tl", latency)

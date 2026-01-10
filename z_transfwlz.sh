@@ -1,0 +1,1 @@
+scp -P 5806 -r /Users/prathore/Documents/Vision26/z_whlsx orangepi@funkyvision2.local:/home/orangepi/MonkeyVision_AT/

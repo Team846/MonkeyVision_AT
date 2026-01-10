@@ -3,7 +3,7 @@ import numpy as np
 from cv2.typing import MatLike
 from util.config import ConfigCategory, Config
 from typing import Tuple
-from numba import njit, prange
+from numba import njit
 
 pref_category = ConfigCategory("Preprocessing")
 
@@ -13,22 +13,23 @@ min_corr_strength = pref_category.getFloatConfig("min_corr_strength", 0.1)
 corr_divisor = pref_category.getFloatConfig("corr_divisor", 400.0)
 divergence_gain = pref_category.getFloatConfig("divergence_gain", 1.5)
 
-# TODO: test stability and perf of nogil and parallel
-@njit(cache=True, fastmath=True, parallel=True, nogil=True)
+@njit(cache=True, fastmath=True)
 def COMPUTE_CORRECTION_MATRIX(image: np.ndarray, bins_per_side: int, target_brightness: int) -> np.ndarray:
     height, width = image.shape
     bin_height = height // bins_per_side
     bin_width = width // bins_per_side
 
     bin_means = np.empty((bins_per_side, bins_per_side), dtype=np.float32)
-    
-    for i in prange(bins_per_side):
-        for j in range(bins_per_side):
-            bin_means[i, j] = np.mean(image[i * bin_height:(i + 1) * bin_height, j * bin_width:(j + 1) * bin_width])
+    for row in range(bins_per_side):
+        y0 = row * bin_height
+        y1 = (row + 1) * bin_height
+        for col in range(bins_per_side):
+            x0 = col * bin_width
+            x1 = (col + 1) * bin_width
+            region = image[y0:y1, x0:x1]
+            bin_means[row, col] = np.mean(region)
 
-    correction_matrix = target_brightness - bin_means
-
-    return correction_matrix
+    return (target_brightness - bin_means).astype(np.float32)
 
 def BIN_BASED_CORRECT(image: np.ndarray, acc_num_bins: int, target_brightness: int, min_corr_strength: float, corr_divisor: float) -> np.ndarray:
     height, width = image.shape

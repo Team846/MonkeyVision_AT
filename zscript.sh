@@ -1,4 +1,4 @@
 
-scp -r /Users/kush/Documents/Projects/Robotics/MonkeyVision_AT/* orangepi@10.8.46.61:/home/orangepi/MonkeyVision_AT
+scp -P 5806 -r /Users/prathore/Downloads/robotics/MonkeyVision_AT/* orangepi@funkyvision2.local:/home/orangepi/MonkeyVision_AT
 
 echo scped everything!
